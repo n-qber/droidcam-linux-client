@@ -296,6 +296,7 @@ void decoder_cleanup() {
 void process_frame(JPGFrame *frame) {
     unsigned long len = (unsigned long)frame->length;
     BYTE *p = frame->data;
+    BYTE *transformed_buf = NULL;
 
     if (jpg_decoder.subsamp == 0) {
         int width, height, subsamp, colorspace;
@@ -321,10 +322,13 @@ void process_frame(JPGFrame *frame) {
     }
 
     if (jpg_decoder.transform.op) {
-        if (tjTransform(jpg_decoder.tjXform, p, len, 1, &p, &len, &jpg_decoder.transform, 0)) {
+        unsigned long transformed_len = 0;
+        if (tjTransform(jpg_decoder.tjXform, p, len, 1, &transformed_buf, &transformed_len, &jpg_decoder.transform, 0)) {
             errprint("tjTransform failure: %s\n", tjGetErrorStr());
             return;
         }
+        p = transformed_buf;
+        len = transformed_len;
     }
 
     if (tjDecompressToYUVPlanes(jpg_decoder.tj, p, len,
@@ -333,7 +337,12 @@ void process_frame(JPGFrame *frame) {
             TJFLAG_FASTDCT | TJFLAG_FASTUPSAMPLE))
     {
         errprint("tjDecompressToYUV2 failure: %d\n", tjGetErrorCode(jpg_decoder.tj));
+        if (transformed_buf) tjFree(transformed_buf);
         return;
+    }
+
+    if (transformed_buf) {
+        tjFree(transformed_buf);
     }
 
     decoder_share_frame();

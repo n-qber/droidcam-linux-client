@@ -15,6 +15,7 @@
 
 #include <X11/Xlib.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "common.h"
 #include "settings.h"
@@ -461,6 +462,14 @@ int main(int argc, char *argv[])
 	// init threads
 	XInitThreads();
 	gtk_init(&argc, &argv);
+
+	if (access(APP_ICON_FILE, F_OK) != 0) {
+		if (access("icon2.png", F_OK) == 0) {
+			APP_ICON_FILE = "icon2.png";
+		} else if (access("icon.png", F_OK) == 0) {
+			APP_ICON_FILE = "icon.png";
+		}
+	}
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "DroidCam (Classic)");
